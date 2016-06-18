@@ -2,6 +2,11 @@ require 'nokogiri'
 require 'net/http'
 require 'uri'
 require 'sqlite3'
+require 'pathname'
+
+DOCUMENT_DIR = Pathname.new("http.docset/Contents/Resources/Documents/")
+STATUSES_URI = URI.parse("https://httpstatuses.com/")
+DATABASE_PATH = Pathname.new("http.docset/Contents/Resources/docSet.dsidx")
 
 def index_file
   File.read('./http.docset/Contents/Resources/Documents/index.html')
@@ -20,12 +25,12 @@ def code_short_desc(code)
 end
 
 def fetch_pages
-  index_uri = URI.parse("https://httpstatuses.com/")
-  index_file = "http.docset/Contents/Resources/Documents/index.html"
-  write_page(index_uri, index_file)
+  DOCUMENT_DIR.mkpath unless DOCUMENT_DIR.exist?
+  index_file = DOCUMENT_DIR.join('index.html')
+  write_page(STATUSES_URI, index_file)
   codes.each do |code|
-    uri = URI.parse("https://httpstatuses.com/#{code}")
-    filename = "http.docset/Contents/Resources/Documents/#{code}.html"
+    uri = STATUSES_URI.merge(URI.parse("/#{code}"))
+    filename = DOCUMENT_DIR.join("#{code}.html")
     write_page(uri, filename)
   end
 end
@@ -37,11 +42,9 @@ def write_page(uri, filename)
   end
 end
 
-def createdb
-  if File.exists?("http.docset/Contents/Resources/docSet.dsidx")
-    File.unlink("http.docset/Contents/Resources/docSet.dsidx")
-  end
-	db = SQLite3::Database.new "http.docset/Contents/Resources/docSet.dsidx"
+def create_db
+  DATABASE_PATH.unlink if DATABASE_PATH.exist?
+	db = SQLite3::Database.new DATABASE_PATH.to_s
 	db.execute <<-SQL
 CREATE TABLE searchIndex(id INTEGER PRIMARY KEY, name TEXT, type TEXT, path TEXT);
 	SQL
@@ -57,4 +60,4 @@ INSERT OR IGNORE INTO searchIndex(name, type, path) VALUES (?, ?, ?);
 end
 
 fetch_pages
-createdb
+create_db
