@@ -1,7 +1,7 @@
 Dash HTTP Statuses
 ==================
 
-Generate Dash docset for HTTP statuses using the https://httpstatuses.com site.
+Generate Dash docset for HTTP statuses based on RFC 2616.
 
 Usage
 -----
